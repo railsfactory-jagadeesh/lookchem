@@ -23,7 +23,7 @@ require "mysql"
 	safety= array[v+1].inner_html if k.to_html.include?("Safety Description")
     end
   @element_para = @page.parser.css(":nth-child(5) p").to_html.gsub("<p>","").gsub("</p>","").split("<br>        ")
-  arr=Array.new
+  arr=Array.new 
     @element_para.each do |p|
     arr << p#.split(":").last.gsub("<sub>","").gsub("</sub>","").gsub("<sup>","").gsub("</sup>","") rescue "Not Found"
   end
