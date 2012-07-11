@@ -1,55 +1,64 @@
-#~ require File.join(File.dirname(__FILE__), "lookchemsqlconnection.rb")
 require "rubygems"
-require "mechanize"
+require "nokogiri"
 require "mysql"
-@agent=Mechanize.new
-@page=@agent.get("http://www.lookchem.com/Clozapine/")
-   name=@page.parser.css(".rbox").css("li").css("h1").inner_html
-  casnumber=@page.parser.css(".rbox").css("li").css("h2").css("a").inner_html
-  molecularstructure=@page.parser.css("#gallery").css("a")[0]["href"]
-  synonyms=@page.parser.css("li:nth-child(12)").css("li")[0].inner_html
-   iupacname="NULL"; formula="NULL"; molecularweight="NULL";molarrefractivity="NULL";molarvolume="NULL";density="NULL";flashpoint="NULL";indexofrefraction="NULL";polarizability="NULL";
- surfacetension="NULL"
-   enthalpyofvapourization="NULL"; boilingpoint="NULL";vapourpressure="NULL"; apperance="NULL"; productcategoriesoferlotonib="NULL"; canonicalsmiles="NULL"; inchi="NULL"; inchikey="NULL";
-    meltingpoint="NULL"; hazardsymbols="NULL"; riskcodes="NULL"; safety="NULL"; transportinfo="NULL";
-    array=Array.new
-   @page.parser.css(".supdetail li").each { |tag|
+require "open-uri"
+array=Array.new
+doc=Nokogiri::HTML(open("http://www.lookchem.com/hotproduct_list_A_1.html"))
+
+ @conn = Mysql.real_connect("localhost","root","root","LookChem")
+  @conn.autocommit(false)
+	
+doc.css("td:nth-child(2) a").each { |u| 
+    link=u["href"]
+   page = Nokogiri::HTML(open(link))
+	 #~ data=page.css(".rbox:nth-child(1)")
+	 #~ name=data.css("li").css("h1").inner_html
+	 	#~ caseno= data.css("li").css("h2").css("a").inner_html
+		#~ p superlistname=page.css("")
+		
+	docs=page.css(".supdetail li")
+	name= docs.css("li").css("h1").inner_html
+  casnumber= docs.css("li").css("h2").css("a").inner_html
+	structure= docs.css("#gallery").css("a")[0]["href"]
+  #synonyms=@page.parser.css("li:nth-child(12)").css("li")[0].inner_html
+	page.css(".supdetail li").each { |tag|
         array<<tag
     }
+		transportinformation="NULL"
+		hazardsymbols="NULL"
+		riskcodes="NULL"
+		safety="NULL"
+		molecularweight="NULL"
+		molecularformula="NULL"
+		density="NULL"
+		boilingpoint="NULL"
+		flashpoint=""
+		superlistname="NULL"
+		synonyms="NULL"
+		meltingpoint="NULL"
+		appearance="NULL"
     array.each_with_index do |k,v|
-	transportinfo= array[v+1].inner_html if k.to_html.include?("Transport Information")
-	hazardsymbols=array[v+1].inner_html if k.to_html.include?("Hazard Symbols")
-	riskcodes= array[v+1].inner_html if k.to_html.include?("Risk Codes")
-	safety= array[v+1].inner_html if k.to_html.include?("Safety Description")
-    end
-  @element_para = @page.parser.css(":nth-child(5) p").to_html.gsub("<p>","").gsub("</p>","").split("<br>        ")
-  arr=Array.new
-    @element_para.each do |p|
-    arr << p#.split(":").last.gsub("<sub>","").gsub("</sub>","").gsub("<sup>","").gsub("</sup>","") rescue "Not Found"
-  end
-  arr.each { |inputs|
-   iupacname= inputs.split(":").last.strip! if inputs.include?("IUPAC Name")
-   formula= inputs.split(":").last.gsub("<sub>","").gsub("</sub>","") if inputs.include?("Formula")
-  molecularweight= inputs.split(":").last.gsub("<sub>","").gsub("</sub>","") if inputs.include?("Molecular Weight")
-   molarrefractivity= inputs.split(":").last.gsub("<sub>","").gsub("</sub>","") if inputs.include?("Molar Refractivity")
-   molarvolume= inputs.split(":").last.gsub("<sub>","").gsub("</sub>","") if inputs.include?("Molar Volume")
-   density= inputs.split(":").last.gsub("<sub>","").gsub("</sub>","") if inputs.include?("Density:")
-   flashpoint= inputs.split(":").last.gsub("<sub>","").gsub("</sub>","") if inputs.include?("Flash Point")
-   indexofrefraction= inputs.split(":").last.gsub("<sub>","").gsub("</sub>","") if inputs.include?("Index of Refraction")
-   polarizability= inputs.split(":").last.gsub("<sub>","").gsub("</sub>","") if inputs.include?("Polarizability")
-   surfacetension= inputs.split(":").last.gsub("<sub>","").gsub("</sub>","") if inputs.include?("Surface Tension:")
-   enthalpyofvapourization= inputs.split(":").last.gsub("<sub>","").gsub("</sub>","") if inputs.include?("Enthalpy of Vaporization:")
-   boilingpoint= inputs.split(":").last.gsub("<sub>","").gsub("</sub>","") if inputs.include?("Boiling Point:")
-   vapourpressure= inputs.split(":").last.gsub("<sub>","").gsub("</sub>","") if inputs.include?("Vapour Pressure:")
-   apperance= inputs.split(":").last.gsub("<sub>","").gsub("</sub>","") if inputs.include?("Appearance")
-   productcategoriesoferlotonib= inputs.split(":").last.gsub("<sub>","").gsub("</sub>","") if inputs.include?("Product Categories")
-   canonicalsmiles=  inputs.split(":").last.gsub("<sub>","").gsub("</sub>","") if inputs.include?("Canonical SMILES")
-   inchi= inputs.split(":").last.gsub("<sub>","").gsub("</sub>","") if inputs.include?("InChI:")
-   inchikey= inputs.split(":").last.gsub("<sub>","").gsub("</sub>","") if inputs.include?("InChIKey")
-   meltingpoint= inputs.split(":").last.gsub("<sub>","").gsub("</sub>","") if inputs.include?("Melting ")
-  }
-  @conn = Mysql.real_connect("localhost","root","root","LookChem")
-  @conn.autocommit(false)
-  @insert_product = @conn.prepare(format("INSERT INTO products ( name, casnumber, formula, molecularstructure,synonyms,molecularweight,density, meltingpoint ,boilingpoint,flashpoint,apperance,hazardsymbols,riskcodes,safety,transportinfo,iupacname,molarrefractivity,molarvolume, indexofrefraction,polarizability,surfacetension,enthalpyofvapourization,vapourpressure,productcategoriesoferlotonib,canonicalsmiles,inchi,inchikey) VALUES (?, ?, ?, ?, ?, ?,?,?,?,?, ?, ?, ?, ?, ?,?,?,?,?, ?, ?, ?, ?, ?,?,?,?)"))
-  @insert_product.execute(name, casnumber, formula, molecularstructure,synonyms,molecularweight,density, meltingpoint ,boilingpoint,flashpoint,apperance,hazardsymbols,riskcodes,safety,transportinfo,iupacname,molarrefractivity,molarvolume, indexofrefraction,polarizability,surfacetension,enthalpyofvapourization,vapourpressure,productcategoriesoferlotonib,canonicalsmiles,inchi,inchikey)
-  @conn.commit()
+			 transportinformation= array[v+1].inner_html if k.to_html.include?("Transport Information")
+			 hazardsymbols=array[v+1].inner_html if k.to_html.include?("Hazard Symbols")
+			 riskcodes= array[v+1].inner_html if k.to_html.include?("Risk Codes")
+			 safety= array[v+1].inner_html if k.to_html.include?("Safety Description")
+			 molecularweight= array[v+1].inner_html if k.to_html.include?("Molecular Weight")
+			  molecularformula= array[v+1].inner_html.gsub("<sub>","").gsub("</sub>","") if k.to_html.include?("Formula")
+			 #formula= inputs.split(":").last.gsub("<sub>","").gsub("</sub>","") if inputs.include?("Formula")
+			 p density= array[v+1].inner_html.gsub("<sup>","").gsub("</sup>","") if k.to_html.include?("Density")
+			 boilingpoint= array[v+1].inner_html if k.to_html.include?("Boiling Point")
+			 flashpoint= array[v+1].inner_html if k.to_html.include?("Flash Point")
+			 superlistname= array[v+1].inner_html if k.to_html.include?("Superlist Name")
+			 synonyms= array[v+1].inner_html if k.to_html.include?("Synonyms")
+			 meltingpoint= array[v+1].inner_html if k.to_html.include?("Melting Point")
+			appearance= array[v+1].inner_html if k.to_html.include?("Appearance")
+		end
+		array=[]
+
+			 @insert_productdatas = @conn.prepare(format("INSERT INTO productdatas ( casnumber, name, molecularformula,structure,synonyms,molecularweight, density ,meltingpoint,boilingpoint,flashpoint,appearance,hazardsymbols,riskcodes,safety,transportinformation,superlistname) VALUES (?, ?, ?, ?, ?, ?,?,?,?,?, ?, ?, ?, ?, ?,?)"))
+   @insert_productdatas.execute(casnumber, name, molecularformula,structure,synonyms,molecularweight, density ,meltingpoint,boilingpoint,flashpoint,appearance,hazardsymbols,riskcodes,safety,transportinformation,superlistname)
+	 @conn.commit()
+	
+
+
+	}
