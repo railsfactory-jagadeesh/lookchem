@@ -2,6 +2,7 @@ require "rubygems"
 require "nokogiri"
 require "mysql"
 require "open-uri"
+image_url = "www.lookchem.com"
 array=Array.new
 doc=Nokogiri::HTML(open("http://www.lookchem.com/hotproduct_list_A_1.html"))
 
@@ -39,13 +40,13 @@ doc.css("td:nth-child(2) a").each { |u|
 		appearance="NULL"
     array.each_with_index do |k,v|
 			 transportinformation= array[v+1].inner_html if k.to_html.include?("Transport Information")
-			 hazardsymbols=array[v+1].inner_html if k.to_html.include?("Hazard Symbols")
+				hazardsymbols=image_url + array[v+1].inner_html.split('src=')[1].split('alt')[0].split('"')[1]  if k.to_html.include?("Hazard Symbols")				
 			 riskcodes= array[v+1].inner_html if k.to_html.include?("Risk Codes")
-			 safety= array[v+1].inner_html if k.to_html.include?("Safety Description")
+			 safety= array[v+1].inner_html.split('<a')[0] if k.to_html.include?("Safety Description")
 			 molecularweight= array[v+1].inner_html if k.to_html.include?("Molecular Weight")
 			  molecularformula= array[v+1].inner_html.gsub("<sub>","").gsub("</sub>","") if k.to_html.include?("Formula")
 			 #formula= inputs.split(":").last.gsub("<sub>","").gsub("</sub>","") if inputs.include?("Formula")
-			 p density= array[v+1].inner_html.gsub("<sup>","").gsub("</sup>","") if k.to_html.include?("Density")
+			  density= array[v+1].inner_html.gsub("<sup>","").gsub("</sup>","") if k.to_html.include?("Density")
 			 boilingpoint= array[v+1].inner_html if k.to_html.include?("Boiling Point")
 			 flashpoint= array[v+1].inner_html if k.to_html.include?("Flash Point")
 			 superlistname= array[v+1].inner_html if k.to_html.include?("Superlist Name")
@@ -58,7 +59,6 @@ doc.css("td:nth-child(2) a").each { |u|
 			 @insert_productdatas = @conn.prepare(format("INSERT INTO productdatas ( casnumber, name, molecularformula,structure,synonyms,molecularweight, density ,meltingpoint,boilingpoint,flashpoint,appearance,hazardsymbols,riskcodes,safety,transportinformation,superlistname) VALUES (?, ?, ?, ?, ?, ?,?,?,?,?, ?, ?, ?, ?, ?,?)"))
    @insert_productdatas.execute(casnumber, name, molecularformula,structure,synonyms,molecularweight, density ,meltingpoint,boilingpoint,flashpoint,appearance,hazardsymbols,riskcodes,safety,transportinformation,superlistname)
 	 @conn.commit()
-	
 
 
 	}
